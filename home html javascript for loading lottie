@@ -37,20 +37,17 @@ html, body {
 /* Lottie animation container (will hold the lottie-web animation) */
 #lottie-animation-container {
   width: 100%;
-  max-width: 800px; /* Max width for the Lottie itself */
-  height: auto; /* Maintain aspect ratio */
+  max-width: 100%; /* Fills available width */
+  height: 100%; /* Fills available height */
+  object-fit: cover; /* Scales to cover the entire container, potentially cropping */
   display: block; /* Remove extra space below inline elements */
   pointer-events: none; /* Allow clicks to pass through to elements behind if needed */
-  /* Ensure it has a minimum height to be visible before Lottie loads */
-  min-height: 200px; /* Adjust as needed */
 }
 
 /* Styling for the text overlays */
 .text-overlay {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  /* REMOVED: top, left, transform from here. These will be set by JavaScript once on load. */
   opacity: 0;
   transition: opacity 0.5s ease-in-out;
   text-align: center;
@@ -68,9 +65,9 @@ html, body {
 
 .text-overlay h2 {
   margin: 0;
-  font-family: 'Inter', sans-serif; /* Ensure font is consistent */
-  color: #333; /* Default text color, Elementor H2 might override */
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.3); /* For better readability over Lottie */
+  font-family: 'Poppins', sans-serif; /* Font to Poppins */
+  color: #260C1A; /* Text color */
+  text-shadow: none; /* Removed text shadow */
 }
 
 /* Responsive adjustments for smaller screens */
@@ -96,19 +93,19 @@ html, body {
 
     <!-- Text Overlays -->
     <div class="text-overlay" id="text-1">
-      <h2>Welcome to our amazing journey!</h2>
+      <h2>Pages</h2>
     </div>
 
     <div class="text-overlay" id="text-2">
-      <h2>Discover new horizons with us.</h2>
+      <h2>Paths</h2>
     </div>
 
     <div class="text-overlay" id="text-3">
-      <h2>Innovation drives our success.</h2>
+      <h2>States</h2>
     </div>
 
     <div class="text-overlay" id="text-4">
-      <h2>Experience the future, today.</h2>
+      <h2>Page Elements</h2>
     </div>
   </div>
 </div>
@@ -191,19 +188,61 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         console.log('Lottie animation initialized with lottie-web:', anim);
 
-        // Text overlay configurations
+        // Text overlay configurations - UPDATED with positioning
         const textOverlays = [
-          { id: 'text-1', start: 0.1, end: 0.3 },
-          { id: 'text-2', start: 0.35, end: 0.55 },
-          { id: 'text-3', start: 0.6, end: 0.8 },
-          { id: 'text-4', start: 0.85, end: 1.0 }
+          {
+            id: 'text-1',
+            start: 0.1,
+            end: 0.25,
+            style: {
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)' // Default: Centered
+            }
+          },
+          {
+            id: 'text-2',
+            start: 0.3,
+            end: 0.45,
+            style: {
+              top: '40%', // Example: Move text-2 higher
+              left: '60%', // Example: Move text-2 to the right
+              transform: 'translate(-50%, -50%)' // Keep for centering relative to new top/left
+            }
+          },
+          {
+            id: 'text-3',
+            start: 0.5,
+            end: 0.65,
+            style: {
+              top: '20%',
+              left: '20%',
+              transform: 'translate(-50%, -50%)' // Default: Centered
+            }
+          },
+          {
+            id: 'text-4',
+            start: 0.65,
+            end: .90,
+            style: {
+              top: '30%', // Example: Move text-4 lower
+              left: '80%',
+              transform: 'translate(-50%, -50%)' // Keep for centering relative to new top/left
+            }
+          }
         ];
 
         // Store references to text overlay elements
-        const overlayElements = textOverlays.map(config => ({
-          ...config,
-          element: document.getElementById(config.id)
-        }));
+        const overlayElements = textOverlays.map(config => {
+          const element = document.getElementById(config.id);
+          if (element && config.style) {
+            // Apply positioning styles once on initialization
+            element.style.top = config.style.top || '';
+            element.style.left = config.style.left || '';
+            element.style.transform = config.style.transform || '';
+          }
+          return { ...config, element: element };
+        });
 
         // Wait for the animation to be loaded and ready (lottie-web's equivalent of 'ready')
         anim.addEventListener('DOMLoaded', function() {
@@ -235,18 +274,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const targetFrame = Math.floor(scrollProgress * (anim.totalFrames - 1));
                 anim.goToAndStop(targetFrame, true); // goToAndStop(frame, isFrame)
 
-                // Update text overlays based on scrollProgress
+                // Update text overlays based on scrollProgress and apply dynamic styles
                 overlayElements.forEach(overlay => {
                   const element = overlay.element;
                   if (element) {
                     if (scrollProgress >= overlay.start && scrollProgress <= overlay.end) {
                       if (!element.classList.contains('active')) {
                         element.classList.add('active');
+                        // No need to apply style here, it's already set on load
                         // console.log(`Showing text overlay: ${overlay.id} at progress ${scrollProgress.toFixed(4)}`);
                       }
                     } else {
                       if (element.classList.contains('active')) {
                         element.classList.remove('active');
+                        // No need to clear style here, it remains fixed
                         // console.log(`Hiding text overlay: ${overlay.id} at progress ${scrollProgress.toFixed(4)}`);
                       }
                     }
