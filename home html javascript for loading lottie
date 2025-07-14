@@ -36,10 +36,10 @@ html, body {
 
 /* Lottie animation container (will hold the lottie-web animation) */
 #lottie-animation-container {
-  width: 100%;
+  //width: 100%;
   max-width: 100%; /* Fills available width */
-  height: 100%; /* Fills available height */
-  object-fit: cover; /* Scales to cover the entire container, potentially cropping */
+  height: 80%; /* Fills available height */
+  object-fit: contain; /* UPDATED: Scales to fit within the container, maintaining aspect ratio */
   display: block; /* Remove extra space below inline elements */
   pointer-events: none; /* Allow clicks to pass through to elements behind if needed */
 }
@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           renderer: 'svg', // 'svg' is generally recommended for quality and responsiveness
           loop: false, // Control loop via scroll
           autoplay: false, // Control autoplay via scroll
-          path: 'https://testchimp.io/wp-content/uploads/2025/07/Artboard-6.json' // Your Lottie URL
+          path: 'https://cdn.lottielab.com/l/8SRfQ8jUQ3ro9Q.json' // Your Lottie URL
         });
 
         console.log('Lottie animation initialized with lottie-web:', anim);
@@ -263,11 +263,12 @@ document.addEventListener('DOMContentLoaded', async () => {
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: container, // The element that defines the scroll area
-              start: "top top", // When the top of the trigger hits the top of the viewport
+              start: "top 50px", // UPDATED: Start pinning when the container's top hits 115px from viewport top
               end: "bottom bottom", // When the bottom of the trigger hits the bottom of the viewport
               scrub: true, // Smoothly link scroll position to animation progress
               pin: stickyWrapper, // Pin the Lottie wrapper to the screen
-              markers: false, // Set to true for debugging markers on the page
+              markers: true, // Set to true for debugging markers on the page
+              pinSpacing: false, // Tr y disabling pin spacing
               onUpdate: self => {
                 // Control Lottie animation progress
                 const scrollProgress = self.progress; // ScrollTrigger's progress (0 to 1)
