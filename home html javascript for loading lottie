@@ -36,10 +36,10 @@ html, body {
 
 /* Lottie animation container (will hold the lottie-web animation) */
 #lottie-animation-container {
-  //width: 100%;
+  width: 100%;
   max-width: 100%; /* Fills available width */
-  height: 80%; /* Fills available height */
-  object-fit: contain; /* UPDATED: Scales to fit within the container, maintaining aspect ratio */
+  height: 85%; /* Fills available height */
+  object-fit: contain; /* Scales to fit within the container, maintaining aspect ratio */
   display: block; /* Remove extra space below inline elements */
   pointer-events: none; /* Allow clicks to pass through to elements behind if needed */
 }
@@ -93,19 +93,23 @@ html, body {
 
     <!-- Text Overlays -->
     <div class="text-overlay" id="text-1">
-      <h2>Pages</h2>
+      <h2>Capturing all the different <span class="highlightpink">Screens</span></h2>
     </div>
 
     <div class="text-overlay" id="text-2">
-      <h2>Paths</h2>
+      <h2>Capturing all the different <span class="highlightpink">Paths</span></h2>
     </div>
 
     <div class="text-overlay" id="text-3">
-      <h2>States</h2>
+      <h2>Capturing all the different <span class="highlightpink">States</span></h2>
     </div>
 
     <div class="text-overlay" id="text-4">
-      <h2>Page Elements</h2>
+      <h2>Down to the individual <span class="highlightpink">element level</span></h2>
+    </div>
+
+    <div class="text-overlay" id="text-5">
+      <h2>Captured and added to the <span class="highlightpink">TestChimp Context Window</span></h2>
     </div>
   </div>
 </div>
@@ -177,25 +181,110 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
 
-        // Initialize Lottie animation using lottie-web
-        const anim = lottie.loadAnimation({
-          container: lottieAnimationContainer, // The DOM element to render the animation in
-          renderer: 'svg', // 'svg' is generally recommended for quality and responsiveness
-          loop: false, // Control loop via scroll
-          autoplay: false, // Control autoplay via scroll
-          path: 'https://cdn.lottielab.com/l/8SRfQ8jUQ3ro9Q.json' // Your Lottie URL
-        });
+        // Define Lottie URLs for desktop and mobile
+        // IMPORTANT: Use your own hosted Lottie files to avoid CORS issues with external CDNs.
+        const desktopLottieUrl = 'https://testchimp.io/wp-content/uploads/2025/07/Artboard-13.json'; // Your primary Lottie URL
+        const mobileLottieUrl = 'https://testchimp.io/wp-content/uploads/2025/07/Artboard-13.json'; // Your mobile Lottie URL
 
-        console.log('Lottie animation initialized with lottie-web:', anim);
+        let currentAnim = null; // To store the current Lottie animation instance
+
+        // Function to load/reload Lottie based on screen size
+        const loadResponsiveLottie = () => {
+          console.log('loadResponsiveLottie called.');
+          const isMobile = window.matchMedia('(max-width: 768px)').matches; // Define your mobile breakpoint
+          const lottieToLoad = isMobile ? mobileLottieUrl : desktopLottieUrl;
+
+          console.log(`Current screen is ${isMobile ? 'mobile' : 'desktop'}. Selected Lottie URL: ${lottieToLoad}`);
+
+          // Only reload if the Lottie URL has changed or it's the initial load
+          if (!currentAnim || currentAnim.path !== lottieToLoad) {
+            console.log('Lottie URL changed or initial load. Proceeding to load new Lottie.');
+
+            // Destroy existing animation if it exists
+            if (currentAnim) {
+              currentAnim.destroy();
+              console.log('Destroyed previous Lottie animation.');
+            }
+
+            currentAnim = lottie.loadAnimation({
+              container: lottieAnimationContainer,
+              renderer: 'svg',
+              loop: false,
+              autoplay: false,
+              path: lottieToLoad
+            });
+
+            currentAnim.addEventListener('DOMLoaded', function() {
+              console.log('Lottie animation DOMLoaded (lottie-web ready equivalent)!');
+              console.log('Total frames:', currentAnim.totalFrames);
+              currentAnim.stop();
+              console.log('Lottie animation explicitly stopped.');
+
+              if (typeof currentAnim.totalFrames !== 'number' || currentAnim.totalFrames <= 0) {
+                console.error('Lottie animation has invalid or zero totalFrames. Cannot control playback with lottie-web.');
+                return;
+              }
+
+              // Re-initialize ScrollTrigger for the new animation
+              // Destroy any old ScrollTrigger instance first if it exists
+              if (window.gsap && window.ScrollTrigger) {
+                ScrollTrigger.getAll().forEach(trigger => trigger.kill()); // Kill all existing ScrollTriggers
+                console.log('Killed all previous ScrollTrigger instances.');
+              }
+
+
+              const tl = gsap.timeline({
+                scrollTrigger: {
+                  trigger: container,
+                  start: "top 50px", // Start pinning when the container's top hits 50px from viewport top
+                  end: "bottom bottom",
+                  scrub: true,
+                  pin: stickyWrapper,
+                  markers: false,
+                  // pinSpacing: false, // Removed this property
+                  onUpdate: self => {
+                    const scrollProgress = self.progress;
+                    const targetFrame = Math.floor(scrollProgress * (currentAnim.totalFrames - 1));
+                    currentAnim.goToAndStop(targetFrame, true);
+
+                    overlayElements.forEach(overlay => {
+                      const element = overlay.element;
+                      if (element) {
+                        if (scrollProgress >= overlay.start && scrollProgress <= overlay.end) {
+                          if (!element.classList.contains('active')) {
+                            element.classList.add('active');
+                          }
+                        } else {
+                          if (element.classList.contains('active')) {
+                            element.classList.remove('active');
+                          }
+                        }
+                      }
+                    });
+                  }
+                }
+              });
+              ScrollTrigger.refresh(); // Force a refresh after new setup
+              console.log('ScrollTrigger re-initialized and refreshed.');
+            });
+
+            currentAnim.addEventListener('data_failed', function(e) {
+              console.error('Lottie-web data loading failed:', e);
+              console.log('Ensure your Lottie JSON file is accessible and valid.');
+            });
+          } else {
+            console.log('Lottie URL is the same, no need to reload.');
+          }
+        };
 
         // Text overlay configurations - UPDATED with positioning
         const textOverlays = [
           {
             id: 'text-1',
             start: 0.1,
-            end: 0.25,
+            end: 0.3,
             style: {
-              top: '50%',
+              top: '17%',
               left: '50%',
               transform: 'translate(-50%, -50%)' // Default: Centered
             }
@@ -205,38 +294,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             start: 0.3,
             end: 0.45,
             style: {
-              top: '40%', // Example: Move text-2 higher
-              left: '60%', // Example: Move text-2 to the right
+              top: '17%', // Example: Move text-2 higher
+              left: '50%', // Example: Move text-2 to the right
               transform: 'translate(-50%, -50%)' // Keep for centering relative to new top/left
             }
           },
           {
             id: 'text-3',
-            start: 0.5,
-            end: 0.65,
+            start: 0.45,
+            end: 0.70,
             style: {
-              top: '20%',
-              left: '20%',
+              top: '17%',
+              left: '50%',
               transform: 'translate(-50%, -50%)' // Default: Centered
             }
           },
           {
             id: 'text-4',
-            start: 0.65,
-            end: .90,
+            start: 0.70,
+            end: .80,
             style: {
-              top: '30%', // Example: Move text-4 lower
-              left: '80%',
+              top: '17%', // Example: Move text-4 lower
+              left: '50%',
+              transform: 'translate(-50%, -50%)' // Keep for centering relative to new top/left
+            }
+          },
+          {
+            id: 'text-5',
+            start: 0.80,
+            end: 1.00,
+            style: {
+              top: '17%', // Example: Move text-4 lower
+              left: '50%',
               transform: 'translate(-50%, -50%)' // Keep for centering relative to new top/left
             }
           }
         ];
 
-        // Store references to text overlay elements
+        // Store references to text overlay elements and apply initial positioning
         const overlayElements = textOverlays.map(config => {
           const element = document.getElementById(config.id);
           if (element && config.style) {
-            // Apply positioning styles once on initialization
             element.style.top = config.style.top || '';
             element.style.left = config.style.left || '';
             element.style.transform = config.style.transform || '';
@@ -244,72 +342,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           return { ...config, element: element };
         });
 
-        // Wait for the animation to be loaded and ready (lottie-web's equivalent of 'ready')
-        anim.addEventListener('DOMLoaded', function() {
-          console.log('Lottie animation DOMLoaded (lottie-web ready equivalent)!');
-          console.log('Total frames:', anim.totalFrames);
+        // Initial load of Lottie
+        loadResponsiveLottie();
 
-          // Explicitly stop the animation to prevent autoplay if it somehow started
-          anim.stop();
-          console.log('Lottie animation explicitly stopped.');
-
-          // Check if totalFrames is valid
-          if (typeof anim.totalFrames !== 'number' || anim.totalFrames <= 0) {
-            console.error('Lottie animation has invalid or zero totalFrames. Cannot control playback with lottie-web.');
-            return;
-          }
-
-          // --- GSAP ScrollTrigger Setup ---
-          const tl = gsap.timeline({
-            scrollTrigger: {
-              trigger: container, // The element that defines the scroll area
-              start: "top 50px", // UPDATED: Start pinning when the container's top hits 115px from viewport top
-              end: "bottom bottom", // When the bottom of the trigger hits the bottom of the viewport
-              scrub: true, // Smoothly link scroll position to animation progress
-              pin: stickyWrapper, // Pin the Lottie wrapper to the screen
-              markers: true, // Set to true for debugging markers on the page
-              pinSpacing: false, // Tr y disabling pin spacing
-              onUpdate: self => {
-                // Control Lottie animation progress
-                const scrollProgress = self.progress; // ScrollTrigger's progress (0 to 1)
-                const targetFrame = Math.floor(scrollProgress * (anim.totalFrames - 1));
-                anim.goToAndStop(targetFrame, true); // goToAndStop(frame, isFrame)
-
-                // Update text overlays based on scrollProgress and apply dynamic styles
-                overlayElements.forEach(overlay => {
-                  const element = overlay.element;
-                  if (element) {
-                    if (scrollProgress >= overlay.start && scrollProgress <= overlay.end) {
-                      if (!element.classList.contains('active')) {
-                        element.classList.add('active');
-                        // No need to apply style here, it's already set on load
-                        // console.log(`Showing text overlay: ${overlay.id} at progress ${scrollProgress.toFixed(4)}`);
-                      }
-                    } else {
-                      if (element.classList.contains('active')) {
-                        element.classList.remove('active');
-                        // No need to clear style here, it remains fixed
-                        // console.log(`Hiding text overlay: ${overlay.id} at progress ${scrollProgress.toFixed(4)}`);
-                      }
-                    }
-                  } else {
-                    console.warn(`Text overlay element with ID ${overlay.id} not found.`);
-                  }
-                });
-              }
-            }
-          });
-
-          // Initial update to ensure correct state on load
-          // ScrollTrigger's onUpdate will handle subsequent updates
-          // No need for separate window.addEventListener('scroll') here
-        });
-
-        // Error handling for lottie-web animation
-        anim.addEventListener('data_failed', function(e) {
-          console.error('Lottie-web data loading failed:', e);
-          console.log('Ensure your Lottie JSON file is accessible and valid.');
-        });
+        // Listen for screen size changes to swap Lottie
+        // Use a named function for the listener to allow removal if needed
+        const mediaQueryListener = () => loadResponsiveLottie();
+        window.matchMedia('(max-width: 768px)').addEventListener('change', mediaQueryListener);
 
       }, 200); // 200ms delay to allow DOM to settle after window.onload
     }; // End of window.onload
